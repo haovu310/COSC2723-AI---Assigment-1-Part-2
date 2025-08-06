@@ -243,90 +243,71 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         A single ply = 1 Pacman move + moves for each ghost.
         """
 
-        def minimax(state, depth, agentIndex, alpha, beta):
-            """
-            Recursive minimax function with alpha-beta pruning that returns a numerical score
-            for the given state, from the perspective of the current agent.
-            """
-            # Base case: if game is over or max depth reached, evaluate the state
+        def alphabeta(state, depth, agentIndex, alpha, beta):
+            # Base case: terminal state or max depth reached
             if state.isWin() or state.isLose() or depth == 0:
                 return self.evaluationFunction(state)
 
             numAgents = state.getNumAgents()
 
-            # MAX player (Pacman)
             if agentIndex == 0:
-                # Pacman tries to maximize the score
-                maxValue = float('-inf')
-
+                # MAX (Pacman)
+                value = float('-inf')
                 for action in state.getLegalActions(agentIndex):
-                    # Generate successor state from taking action
                     successor = state.generateSuccessor(agentIndex, action)
+                    score = alphabeta(successor, depth, agentIndex + 1, alpha, beta)
 
-                    # Recurse to the next agent (first ghost)
-                    value = minimax(successor, depth, agentIndex + 1, alpha, beta)
+                    if score > value:
+                        value = score
 
-                    # Track the best value seen so far
-                    maxValue = max(maxValue, value)
+                    # Prune only if value > beta (strictly to match with the autograder)
+                    if value > beta:
+                        return value
 
-                    # Alpha-beta pruning: update alpha
-                    alpha = max(alpha, maxValue)
-                    if maxValue >= beta:
-                        break  # Prune remaining branches
+                    alpha = max(alpha, value)
 
-                return maxValue
+                return value
 
             else:
-                # MIN player (ghost)
-                minValue = float('inf')
-
-                # Determine which agent comes next
+                # MIN (Ghosts)
+                value = float('inf')
                 nextAgent = agentIndex + 1
                 nextDepth = depth
 
-                # If we've reached the last agent, wrap around to Pacman
-                # and reduce depth by 1 (1 full ply complete)
+                # Last ghost → next is Pacman at decreased depth
                 if nextAgent == numAgents:
                     nextAgent = 0
                     nextDepth -= 1
 
                 for action in state.getLegalActions(agentIndex):
-                    # Generate successor state from ghost action
                     successor = state.generateSuccessor(agentIndex, action)
+                    score = alphabeta(successor, nextDepth, nextAgent, alpha, beta)
 
-                    # Recurse to the next agent or next ply
-                    value = minimax(successor, nextDepth, nextAgent, alpha, beta)
+                    if score < value:
+                        value = score
 
-                    # Track the worst-case scenario (ghosts minimize)
-                    minValue = min(minValue, value)
+                    # Prune only if value < beta (strictly to match with the autograder)
+                    if value < alpha:
+                        return value
 
-                    # Alpha-beta pruning: update beta
-                    beta = min(beta, minValue)
-                    if minValue <= alpha:
-                        break  # Prune remaining branches
+                    beta = min(beta, value)
 
-                return minValue
+                return value
 
-        # Top-level decision for Pacman
-        bestScore = float('-inf')  # Highest value seen so far
-        bestAction = None  # Action that gives the best value
-        alpha = float('-inf')  # Initialize alpha (max's lower bound)
-        beta = float('inf')  # Initialize beta (min's upper bound)
+        # Top-level decision: Pacman chooses action with highest score
+        alpha = float('-inf')
+        beta = float('inf')
+        bestScore = float('-inf')
+        bestAction = None
 
-        # Evaluate all possible Pacman moves (legal actions at root)
         for action in gameState.getLegalActions(0):
-            # Generate successor state after Pacman takes the action
             successor = gameState.generateSuccessor(0, action)
+            score = alphabeta(successor, self.depth, 1, alpha, beta)
 
-            # Evaluate that state using minimax starting with first ghost
-            score = minimax(successor, self.depth, 1, alpha, beta)
-
-            # Update best action if this move yields a better score
             if score > bestScore:
                 bestScore = score
                 bestAction = action
 
-            # Update alpha after each action
             alpha = max(alpha, bestScore)
 
         return bestAction
