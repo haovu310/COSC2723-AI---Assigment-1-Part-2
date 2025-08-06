@@ -234,16 +234,102 @@ class MinimaxAgent(MultiAgentSearchAgent):
 
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
-    """
-    Your minimax agent with alpha-beta pruning (question 3)
-    """
+    def getAction(self, gameState):
+        """
+        Returns the minimax action from the current gameState using self.depth
+        and self.evaluationFunction, with alpha-beta pruning to improve efficiency.
 
-    def getAction(self, gameState: GameState):
+        Pacman is agentIndex 0 (MAX), ghosts are agentIndex 1 to N-1 (MIN layers).
+        A single ply = 1 Pacman move + moves for each ghost.
         """
-        Returns the minimax action using self.depth and self.evaluationFunction
-        """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        def minimax(state, depth, agentIndex, alpha, beta):
+            """
+            Recursive minimax function with alpha-beta pruning that returns a numerical score
+            for the given state, from the perspective of the current agent.
+            """
+            # Base case: if game is over or max depth reached, evaluate the state
+            if state.isWin() or state.isLose() or depth == 0:
+                return self.evaluationFunction(state)
+
+            numAgents = state.getNumAgents()
+
+            # MAX player (Pacman)
+            if agentIndex == 0:
+                # Pacman tries to maximize the score
+                maxValue = float('-inf')
+
+                for action in state.getLegalActions(agentIndex):
+                    # Generate successor state from taking action
+                    successor = state.generateSuccessor(agentIndex, action)
+
+                    # Recurse to the next agent (first ghost)
+                    value = minimax(successor, depth, agentIndex + 1, alpha, beta)
+
+                    # Track the best value seen so far
+                    maxValue = max(maxValue, value)
+
+                    # Alpha-beta pruning: update alpha
+                    alpha = max(alpha, maxValue)
+                    if maxValue >= beta:
+                        break  # Prune remaining branches
+
+                return maxValue
+
+            else:
+                # MIN player (ghost)
+                minValue = float('inf')
+
+                # Determine which agent comes next
+                nextAgent = agentIndex + 1
+                nextDepth = depth
+
+                # If we've reached the last agent, wrap around to Pacman
+                # and reduce depth by 1 (1 full ply complete)
+                if nextAgent == numAgents:
+                    nextAgent = 0
+                    nextDepth -= 1
+
+                for action in state.getLegalActions(agentIndex):
+                    # Generate successor state from ghost action
+                    successor = state.generateSuccessor(agentIndex, action)
+
+                    # Recurse to the next agent or next ply
+                    value = minimax(successor, nextDepth, nextAgent, alpha, beta)
+
+                    # Track the worst-case scenario (ghosts minimize)
+                    minValue = min(minValue, value)
+
+                    # Alpha-beta pruning: update beta
+                    beta = min(beta, minValue)
+                    if minValue <= alpha:
+                        break  # Prune remaining branches
+
+                return minValue
+
+        # Top-level decision for Pacman
+        bestScore = float('-inf')  # Highest value seen so far
+        bestAction = None  # Action that gives the best value
+        alpha = float('-inf')  # Initialize alpha (max's lower bound)
+        beta = float('inf')  # Initialize beta (min's upper bound)
+
+        # Evaluate all possible Pacman moves (legal actions at root)
+        for action in gameState.getLegalActions(0):
+            # Generate successor state after Pacman takes the action
+            successor = gameState.generateSuccessor(0, action)
+
+            # Evaluate that state using minimax starting with first ghost
+            score = minimax(successor, self.depth, 1, alpha, beta)
+
+            # Update best action if this move yields a better score
+            if score > bestScore:
+                bestScore = score
+                bestAction = action
+
+            # Update alpha after each action
+            alpha = max(alpha, bestScore)
+
+        return bestAction
 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
