@@ -402,15 +402,63 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         return bestAction
 
 
-def betterEvaluationFunction(currentGameState: GameState):
+def betterEvaluationFunction(currentGameState):
     """
-    Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
-    evaluation function (question 5).
+    A better evaluation function for Pacman.
+    Focuses on collecting food, chasing scared ghosts, avoiding danger,
+    and recognizing win/lose states.
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION:
+    Rewards proximity to food
+    Penalizes proximity to active ghosts
+    Rewards proximity to scared ghosts
+    Rewards approaching capsules
+    Adds strong bonus for winning, penalty for losing
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    # Start with the current game score as the base
+    score = currentGameState.getScore()
+
+    # Extract key game state info
+    pacmanPos = currentGameState.getPacmanPosition()
+    foodList = currentGameState.getFood().asList()
+    ghostStates = currentGameState.getGhostStates()
+    scaredTimers = [ghost.scaredTimer for ghost in ghostStates]
+    capsules = currentGameState.getCapsules()
+
+    # (1) Encourage Pacman to eat food
+    if foodList:
+        foodDistances = [util.manhattanDistance(pacmanPos, food) for food in foodList]
+        closestFoodDist = min(foodDistances)
+        score += 10.0 / (closestFoodDist + 1)
+    else:
+        score += 500  # Likely a winning state
+
+    # (2) Avoid dangerous ghosts, chase scared ones
+    for i, ghost in enumerate(ghostStates):
+        ghostPos = ghost.getPosition()
+        dist = util.manhattanDistance(pacmanPos, ghostPos)
+
+        if scaredTimers[i] == 0:
+            if dist <= 1:
+                score -= 500  # Ghost is too close and dangerous
+            else:
+                score -= 2.0 / (dist + 1)
+        else:
+            score += 20.0 / (dist + 1)  # Reward chasing scared ghosts
+
+    # (3) Encourage approaching capsules
+    for capsule in capsules:
+        dist = util.manhattanDistance(pacmanPos, capsule)
+        score += 3.0 / (dist + 1)
+
+    # (4) Handle terminal states
+    if currentGameState.isWin():
+        score += 1000
+    if currentGameState.isLose():
+        score -= 1000
+
+    return score
 
 
 # Abbreviation
