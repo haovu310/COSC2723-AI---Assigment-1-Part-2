@@ -82,9 +82,7 @@ class ReflexAgent(Agent):
         # This already includes the standard game scoring (e.g., eating food)
         score = successorGameState.getScore()
 
-        # --------------------------------------------------------------------
         # (1) Encourage Pacman to move closer to food
-        # --------------------------------------------------------------------
         foodList = newFood.asList()  # Convert food grid into list of coordinates
         if foodList:
             # Find the Manhattan distance to the closest food
@@ -92,12 +90,10 @@ class ReflexAgent(Agent):
             # The closer the food, the higher the score bonus
             score += 10 / (closestFoodDist + 1)  # +1 to avoid division by zero
         else:
-            # No food left? Winning situation, boost the score!
+            # If there is no food left, it a winning situation, then we will boost the score
             score += 100
 
-        # --------------------------------------------------------------------
         # (2) Penalize proximity to dangerous ghosts
-        # --------------------------------------------------------------------
         for i, ghost in enumerate(newGhostStates):
             ghostPos = ghost.getPosition()
             dist = manhattanDistance(newPos, ghostPos)
@@ -108,15 +104,13 @@ class ReflexAgent(Agent):
                     # Very close ghost — high danger! Strong penalty
                     score -= 500
                 else:
-                    # Farther ghosts — apply smaller penalty
+                    # Further ghosts — apply smaller penalty
                     score -= 2 / dist
             else:
                 # Ghost is scared — we may want to chase it for points
                 score += 5 / (dist + 1)  # Closer scared ghosts are better
 
-        # --------------------------------------------------------------------
         # (3) Discourage Pacman from stopping
-        # --------------------------------------------------------------------
         if action == Directions.STOP:
             score -= 10  # Standing still is rarely helpful in Pacman
 
