@@ -314,19 +314,92 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
-    """
-      Your expectimax agent (question 4)
-    """
-
-    def getAction(self, gameState: GameState):
+    def getAction(self, gameState):
         """
-        Returns the expectimax action using self.depth and self.evaluationFunction
+        Returns the expectimax action using self.depth and self.evaluationFunction.
 
-        All ghosts should be modeled as choosing uniformly at random from their
-        legal moves.
+        Pacman is agentIndex 0 (MAX), ghosts are agentIndex 1 to N-1 (CHANCE nodes).
+        Ghosts are assumed to act uniformly at random (not adversarial).
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        def expectimax(state, depth, agentIndex):
+            """
+            Recursive expectimax function that returns an expected utility value
+            for the given state, from the perspective of the current agent.
+            """
+            # Base case: if game is over or max depth reached, evaluate the state
+            if state.isWin() or state.isLose() or depth == 0:
+                return self.evaluationFunction(state)
+
+            numAgents = state.getNumAgents()
+
+            # MAX player (Pacman)
+            if agentIndex == 0:
+                # Pacman tries to maximize the expected score
+                maxValue = float('-inf')
+
+                for action in state.getLegalActions(agentIndex):
+                    # Generate successor state from taking action
+                    successor = state.generateSuccessor(agentIndex, action)
+
+                    # Recurse to the next agent (first ghost)
+                    value = expectimax(successor, depth, agentIndex + 1)
+
+                    # Track the best value seen so far
+                    maxValue = max(maxValue, value)
+
+                return maxValue
+
+            else:
+                # CHANCE node (ghosts)
+                totalValue = 0
+
+                actions = state.getLegalActions(agentIndex)
+                if not actions:
+                    return self.evaluationFunction(state)
+
+                probability = 1.0 / len(actions)  # Uniform distribution
+
+                # Determine which agent comes next
+                nextAgent = agentIndex + 1
+                nextDepth = depth
+
+                # If we've reached the last agent, wrap around to Pacman
+                # and reduce depth by 1 (1 full ply complete)
+                if nextAgent == numAgents:
+                    nextAgent = 0
+                    nextDepth -= 1
+
+                for action in actions:
+                    # Generate successor state from ghost action
+                    successor = state.generateSuccessor(agentIndex, action)
+
+                    # Recurse to the next agent or next ply
+                    value = expectimax(successor, nextDepth, nextAgent)
+
+                    # Add weighted value (uniform probability)
+                    totalValue += probability * value
+
+                return totalValue
+
+        # Top-level decision for Pacman
+        bestScore = float('-inf')  # Highest expected value seen so far
+        bestAction = None  # Action that gives the best expected value
+
+        # Evaluate all possible Pacman moves (legal actions at root)
+        for action in gameState.getLegalActions(0):
+            # Generate successor state after Pacman takes the action
+            successor = gameState.generateSuccessor(0, action)
+
+            # Evaluate that state using expectimax starting with first ghost
+            score = expectimax(successor, self.depth, 1)
+
+            # Update best action if this move yields a better expected score
+            if score > bestScore:
+                bestScore = score
+                bestAction = action
+
+        return bestAction
 
 
 def betterEvaluationFunction(currentGameState: GameState):
