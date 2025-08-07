@@ -58,8 +58,8 @@ class ReflexAgent(Agent):
         The agent is reflex-based: it looks only one move ahead and makes a decision based on that.
 
         Parameters:
-            - currentGameState: the current state of the game (Pacman position, food, ghost states, etc.)
-            - action: the potential move Pacman might take (e.g., 'North', 'South', 'Stop')
+            - currentGameState: the current state of the game (Pacman position, food, ghost states...)
+            - action: the potential move Pacman might take ('North', 'South', 'Stop'...)
 
         Returns:
             - A numerical score that estimates how good this action is. Higher = better.
@@ -112,7 +112,7 @@ class ReflexAgent(Agent):
 
         # (3) Discourage Pacman from stopping
         if action == Directions.STOP:
-            score -= 10  # Standing still is rarely helpful in Pacman
+            score -= 10  # Standing still is rarely helpful in Pacman so we will punish this action
 
         return score
 
@@ -244,7 +244,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
 
         def alphabeta(state, depth, agentIndex, alpha, beta):
-            # Base case: terminal state or max depth reached
+            # Base case: if game is over or max depth reached, evaluate the state
             if state.isWin() or state.isLose() or depth == 0:
                 return self.evaluationFunction(state)
 
@@ -271,16 +271,22 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             else:
                 # MIN (Ghosts)
                 value = float('inf')
+
+                # Determine which agent comes next
                 nextAgent = agentIndex + 1
                 nextDepth = depth
 
-                # Last ghost → next is Pacman at decreased depth
+                # If we've reached the last agent, wrap around to Pacman
+                # and reduce depth by 1 (1 full ply complete)
                 if nextAgent == numAgents:
                     nextAgent = 0
                     nextDepth -= 1
 
                 for action in state.getLegalActions(agentIndex):
+                    # Generate successor state after Pacman takes the action
                     successor = state.generateSuccessor(agentIndex, action)
+
+                    # Evaluate that state using minimax with alpha beta pruning starting with first ghost
                     score = alphabeta(successor, nextDepth, nextAgent, alpha, beta)
 
                     if score < value:
@@ -290,20 +296,26 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                     if value < alpha:
                         return value
 
+                    # Track the worst-case scenario (ghosts minimize)
                     beta = min(beta, value)
 
                 return value
 
-        # Top-level decision: Pacman chooses action with highest score
-        alpha = float('-inf')
-        beta = float('inf')
-        bestScore = float('-inf')
-        bestAction = None
+        # Top-level decision: Pacman chooses action with the highest score
+        alpha = float('-inf')  # Alpha value
+        beta = float('inf')  # Beta value
+        bestScore = float('-inf')  # Highest value seen so far
+        bestAction = None  # Action that gives the best value
 
+        # Evaluate all possible Pacman moves (legal actions at root)
         for action in gameState.getLegalActions(0):
+            # Generate successor state after Pacman takes the action
             successor = gameState.generateSuccessor(0, action)
+
+            # Evaluate that state using minimax with alpha beta pruning starting with first ghost
             score = alphabeta(successor, self.depth, 1, alpha, beta)
 
+            # Update best action if this move yields a better score
             if score > bestScore:
                 bestScore = score
                 bestAction = action
